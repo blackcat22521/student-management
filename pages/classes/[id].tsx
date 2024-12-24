@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { getClassById, updateClass } from "../../services/api";
-import { GetServerSideProps } from "next";
+import { getClassById, getClasses, updateClass } from "../../services/api";
+import { GetStaticProps, GetStaticPaths } from "next";
 import { Class } from "../../types/types";
 import Link from "next/link";
 
@@ -13,7 +13,7 @@ const ClassDetails = ({ cls }: { cls: Class }) => {
     try {
       await updateClass(cls.id, { className });
       alert("Class updated successfully");
-      router.push("/classes"); 
+      router.push("/classes");
     } catch (error) {
       console.error("Failed to update class:", error);
       alert("Failed to update class. Please try again.");
@@ -50,18 +50,41 @@ const ClassDetails = ({ cls }: { cls: Class }) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getStaticPaths: GetStaticPaths = async () => {
+  try {
+    const classes = await getClasses();
+    const paths = classes.map((cls) => ({
+      params: { id: cls.id.toString() },
+    }));
+
+    return {
+      paths,
+      fallback: "blocking",
+    };
+  } catch (error) {
+    console.error("Failed to fetch classes for paths:", error);
+    return { paths: [], fallback: "blocking" };
+  }
+};
+
+export const getStaticProps: GetStaticProps = async (context) => {
   const { id } = context.params as { id: string };
 
   try {
-    const cls = await getClassById(Number(id)); 
+    const cls = await getClassById(Number(id));
+    if (!cls) {
+      return {
+        notFound: true,
+      };
+    }
     return {
       props: { cls },
+      revalidate: 60,
     };
   } catch (error) {
     console.error("Failed to fetch class:", error);
     return {
-      notFound: true, 
+      notFound: true,
     };
   }
 };

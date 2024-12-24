@@ -1,4 +1,4 @@
-import { GetServerSideProps } from "next";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { useState } from "react";
 import { getStudentById, updateStudent } from "../../services/api";
 import Modal from "../../components/Modal";
@@ -102,19 +102,23 @@ const StudentDetail = ({ student }: { student: Student }) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getStaticProps: GetStaticProps = async (context) => {
   const { id } = context.params!;
 
   try {
-    const student = await getStudentById(Number(id)); 
+    const student = await getStudentById(Number(id));
     if (!student) {
-      return { notFound: true }; 
+      return { notFound: true };
     }
-    return { props: { student } };
+    return { props: { student }, revalidate: 20 };
   } catch (error) {
     console.error("Failed to fetch student:", error);
-    return { notFound: true }; 
+    return { notFound: true };
   }
+};
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return { paths: [], fallback: "blocking" };
 };
 
 export default StudentDetail;
